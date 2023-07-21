@@ -3,11 +3,11 @@
 #  Variables:
 #  DRIVE: location of the (probably external) drive holding a /BTC directory
 ##########################
-DRIVE=/Volumes/sandisk
+DRIVE=/home/armitage/.bitcoin
 
 # Start BTC first so that proxy can access BTC's .cookie file
 # Sleep so that the .cookie file is generated
-BTC_DATADIR=$DRIVE/BTC
+BTC_DATADIR=$DRIVE
 bitcoind -datadir=$BTC_DATADIR -testnet &
 sleep 2
 
