@@ -23,7 +23,7 @@ export PROXY_PORT=50002
 node src/server.js &
 
 ./electrs/target/release/electrs \
-    -vvvv  --timestamp \
+    --timestamp \
     --network testnet \
     --cookie-file $BTC_DATADIR/testnet3/.cookie \
     --daemon-dir $BTC_DATADIR \
