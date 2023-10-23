@@ -3,7 +3,7 @@
 #  Variables:
 #  DRIVE: location of the (probably external) drive holding a /BTC directory
 ##########################
-DRIVE=/home/armitage/.bitcoin
+DRIVE=/home/armitage/spiralext
 
 # Start BTC first so that proxy can access BTC's .cookie file
 # Sleep so that the .cookie file is generated
