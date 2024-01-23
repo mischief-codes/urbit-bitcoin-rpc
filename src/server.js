@@ -137,7 +137,6 @@ const jsonRespond = (rpcPromise, transformer, res) => {
   and packages the results into one RPC return
 */
 app.get("/addresses/info/:address", (req, res) => {
-  console.log(`server hit ${req}`)
   const address = req.params.address;
   const id = "get-address-info";
   const rpcCall1 = {
@@ -158,20 +157,14 @@ app.get("/addresses/info/:address", (req, res) => {
   let block;
   eRpc(rpcCall1, address)
     .then((json) => {
-      console.log('erpc callback 1 hit')
-      console.log(JSON.stringify(json))
       utxos = json.result;
       return eRpc(rpcCall2, address);
     })
     .then((json) => {
-      console.log('erpc callback 2 hit')
-      console.log(JSON.stringify(json))
       used = utxos.length > 0 || json.result.length > 0;
       return bRpc(blockRpc);
     })
     .then((json) => {
-      console.log('erpc callback 3 hit')
-      console.log(JSON.stringify(json))
       block = json.result;
       const ps = utxos.map((u) => {
         if (u.height == 0) {
@@ -185,8 +178,6 @@ app.get("/addresses/info/:address", (req, res) => {
       return Promise.all(ps);
     })
     .then((jsons) => {
-      console.log('erpc callback 3 hit')
-      console.log(JSON.stringify(jsons))
       for (let i = 0; i < jsons.length; i++) {
         utxos[i] = { ...utxos[i], recvd: jsons[i].result.time };
       }
