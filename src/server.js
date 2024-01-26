@@ -218,16 +218,6 @@ app.get("/addresses/info/:address", (req, res) => {
       for (let i = 0; i < jsons.length; i++) {
         utxos[i] = { ...utxos[i], recvd: jsons[i].result.time };
       }
-      console.log('utxos!!', utxos);
-      // // utxos have this format
-      // {
-      //   height: 492,
-      //   tx_hash: '0d64f89545e19e75eb00e8eb105cc596079beacbfccc4e036bea7fecbe7b0710',
-      //   tx_pos: 0,
-      //   value: 625000000,
-      //   recvd: 1706244570
-      // }
-
       const promises = utxos.map((utxo) => queryTxIndex(utxo));
       return Promise.all(promises);
     })
