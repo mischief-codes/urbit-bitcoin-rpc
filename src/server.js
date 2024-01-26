@@ -129,6 +129,34 @@ const jsonRespond = (rpcPromise, transformer, res) => {
     });
 };
 
+const getBlockHasheByHeight = (height) => {
+  const rpcCall = {
+    jsonrpc: "2.0",
+    id: "get-block-hash",
+    method: "getblockhash",
+    params: [height],
+  };
+  return bRpc(rpcCall).then((json) => json.result);
+};
+
+// get block hash by height, then get block by hash, then get tx index
+const queryTxIndex = (utxo) => {
+  const { height, tx_hash } = utxo;
+  return getBlockHasheByHeight(height).then((blockHash) => {
+    const rpcCall = {
+      jsonrpc: "2.0",
+      id: "get-tx-index",
+      method: "getblock",
+      params: [blockHash, 2],
+    };
+    return bRpc(rpcCall).then((json) => {
+      const txs = json.result.tx;
+      const txIndex = txs.findIndex((tx) => tx.txid === tx_hash);
+      return txIndex;
+    });
+  });
+}
+
 /*
   Composes 3 separate RPC calls to:
     - electrs: listunspent
@@ -158,20 +186,20 @@ app.get("/addresses/info/:address", (req, res) => {
   let block;
   eRpc(rpcCall1, address)
     .then((json) => {
-      console.log('erpc callback 1 hit')
-      console.log(JSON.stringify(json))
+      // console.log('erpc callback 1 hit')
+      // console.log(JSON.stringify(json))
       utxos = json.result;
       return eRpc(rpcCall2, address);
     })
     .then((json) => {
-      console.log('erpc callback 2 hit')
-      console.log(JSON.stringify(json))
+      // console.log('erpc callback 2 hit')
+      // console.log(JSON.stringify(json))
       used = utxos.length > 0 || json.result.length > 0;
       return bRpc(blockRpc);
     })
     .then((json) => {
-      console.log('erpc callback 3 hit')
-      console.log(JSON.stringify(json))
+      // console.log('erpc callback 3 hit')
+      // console.log(JSON.stringify(json))
       block = json.result;
       const ps = utxos.map((u) => {
         if (u.height == 0) {
@@ -185,11 +213,29 @@ app.get("/addresses/info/:address", (req, res) => {
       return Promise.all(ps);
     })
     .then((jsons) => {
-      console.log('erpc callback 3 hit')
-      console.log(JSON.stringify(jsons))
+      // console.log('erpc callback 3 hit')
+      // console.log(JSON.stringify(jsons))
       for (let i = 0; i < jsons.length; i++) {
         utxos[i] = { ...utxos[i], recvd: jsons[i].result.time };
       }
+      console.log('utxos!!', utxos);
+      // // utxos have this format
+      // {
+      //   height: 492,
+      //   tx_hash: '0d64f89545e19e75eb00e8eb105cc596079beacbfccc4e036bea7fecbe7b0710',
+      //   tx_pos: 0,
+      //   value: 625000000,
+      //   recvd: 1706244570
+      // }
+
+      const promises = utxos.map((utxo) => queryTxIndex(utxo));
+      return Promise.all(promises);
+    })
+    .then((txIndexes) => {
+      for (let i = 0; i < txIndexes.length; i++) {
+        utxos[i] = { ...utxos[i], tx_index: txIndexes[i] };
+      }
+
       res.send({ error: null, id, result: { address, utxos, block, used } });
     })
     .catch((err) => {
