@@ -129,6 +129,34 @@ const jsonRespond = (rpcPromise, transformer, res) => {
     });
 };
 
+const getBlockHasheByHeight = (height) => {
+  const rpcCall = {
+    jsonrpc: "2.0",
+    id: "get-block-hash",
+    method: "getblockhash",
+    params: [height],
+  };
+  return bRpc(rpcCall).then((json) => json.result);
+};
+
+// get block hash by height, then get block by hash, then get tx index
+const queryTxIndex = (utxo) => {
+  const { height, tx_hash } = utxo;
+  return getBlockHasheByHeight(height).then((blockHash) => {
+    const rpcCall = {
+      jsonrpc: "2.0",
+      id: "get-tx-index",
+      method: "getblock",
+      params: [blockHash, 2],
+    };
+    return bRpc(rpcCall).then((json) => {
+      const txs = json.result.tx;
+      const txIndex = txs.findIndex((tx) => tx.txid === tx_hash);
+      return txIndex;
+    });
+  });
+}
+
 /*
   Composes 3 separate RPC calls to:
     - electrs: listunspent
@@ -181,6 +209,14 @@ app.get("/addresses/info/:address", (req, res) => {
       for (let i = 0; i < jsons.length; i++) {
         utxos[i] = { ...utxos[i], recvd: jsons[i].result.time };
       }
+      const promises = utxos.map((utxo) => queryTxIndex(utxo));
+      return Promise.all(promises);
+    })
+    .then((txIndexes) => {
+      for (let i = 0; i < txIndexes.length; i++) {
+        utxos[i] = { ...utxos[i], tx_index: txIndexes[i] };
+      }
+
       res.send({ error: null, id, result: { address, utxos, block, used } });
     })
     .catch((err) => {
@@ -356,7 +392,9 @@ app.get("/gettxvals/:txid", (req, res) => {
 });
 
 app.get("/broadcasttx/:rawtx", (req, res) => {
+  console.log('broadcasttx hit')
   const id = "broadcast-tx";
+  console.log('rawtx', req.params.rawtx)
   const txid = bitcoin.Transaction.fromHex(req.params.rawtx).getId();
   const sendTxCall = {
     jsonrpc: "2.0",
@@ -374,6 +412,7 @@ app.get("/broadcasttx/:rawtx", (req, res) => {
   eRpc(sendTxCall)
     .then((json) => {
       if (json.result != null) {
+        console.log('got txid, done', json)
         // got txid, done
         res.send({
           ...json,
@@ -383,10 +422,14 @@ app.get("/broadcasttx/:rawtx", (req, res) => {
         return eRpc(txInfoCall);
       }
     })
-    // we only get here if sendrawtransaction failed
     .then((json) => {
+      if (!json) return;
+      // we only get here if sendrawtransaction failed
+      console.log('we only get here if sendrawtransaction failed')
+      console.log(json)
       // -5 : getrawtransaction failed with unseen
       if (json.error != null && json.error.code === -5) {
+        console.log('-5 : getrawtransaction failed with unseen')
         res.send({
           ...json,
           error: null,
@@ -395,6 +438,7 @@ app.get("/broadcasttx/:rawtx", (req, res) => {
       }
       // otherwise, we saw the transaction, but it failed to add, means it already succeeded
       else {
+        console.log('otherwise, we saw the transaction, but it failed to add, means it already succeeded')
         res.send({
           ...json,
           result: { txid, broadcast: false, included: true },
@@ -402,6 +446,7 @@ app.get("/broadcasttx/:rawtx", (req, res) => {
       }
     })
     .catch((err) => {
+      console.log('catch err')
       console.log(err);
       res.status(err.code).end();
     });
