@@ -8,14 +8,16 @@ Make sure that your `bitcoin.conf` settings match those of the included `bitcoin
 
 ## Simple Usage
 
-1. Initialize and build electrs
+1. Install dependencies, initialize and build electrs
 
 ```
 git submodule init
 git submodule update
+sudo apt-get install libclang  ::  or equivalent
 cd electrs
 cargo build --locked --release
 cd ..
+npm i
 ```
 
 2. Set the `$DRIVE` variable at the top of `mainnet-start.sh`, `testnet-start.sh`, or `regnet-start.sh` to a directory that contains a `BTC` directory for Bitcoin core data.

@@ -23,7 +23,7 @@ export PROXY_PORT=50002
 node src/server.js &
 
 ./electrs/target/release/electrs \
-    -vvvv  --timestamp \
+    --timestamp \
     --cookie-file $BTC_DATADIR/.cookie \
     --daemon-dir $BTC_DATADIR \
     --db-dir $ELECTRS_DATADIR \
