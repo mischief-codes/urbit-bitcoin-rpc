@@ -401,7 +401,9 @@ app.get("/gettxvals/:txid", (req, res) => {
 });
 
 app.get("/broadcasttx/:rawtx", (req, res) => {
+  console.log('broadcasttx hit')
   const id = "broadcast-tx";
+  console.log('rawtx', req.params.rawtx)
   const txid = bitcoin.Transaction.fromHex(req.params.rawtx).getId();
   const sendTxCall = {
     jsonrpc: "2.0",
@@ -419,6 +421,7 @@ app.get("/broadcasttx/:rawtx", (req, res) => {
   eRpc(sendTxCall)
     .then((json) => {
       if (json.result != null) {
+        console.log('got txid, done', json)
         // got txid, done
         res.send({
           ...json,
@@ -428,10 +431,14 @@ app.get("/broadcasttx/:rawtx", (req, res) => {
         return eRpc(txInfoCall);
       }
     })
-    // we only get here if sendrawtransaction failed
     .then((json) => {
+      if (!json) return;
+      // we only get here if sendrawtransaction failed
+      console.log('we only get here if sendrawtransaction failed')
+      console.log(json)
       // -5 : getrawtransaction failed with unseen
       if (json.error != null && json.error.code === -5) {
+        console.log('-5 : getrawtransaction failed with unseen')
         res.send({
           ...json,
           error: null,
@@ -440,6 +447,7 @@ app.get("/broadcasttx/:rawtx", (req, res) => {
       }
       // otherwise, we saw the transaction, but it failed to add, means it already succeeded
       else {
+        console.log('otherwise, we saw the transaction, but it failed to add, means it already succeeded')
         res.send({
           ...json,
           result: { txid, broadcast: false, included: true },
@@ -447,6 +455,7 @@ app.get("/broadcasttx/:rawtx", (req, res) => {
       }
     })
     .catch((err) => {
+      console.log('catch err')
       console.log(err);
       res.status(err.code).end();
     });
